@@ -120,6 +120,7 @@ export default function HomeUI({ navigation }) {
         >
           <Image
             style={styles.deleteIcon}
+            color={"#6B4226"}
             source={require("../assets/icons/delete.png")}
           />
         </TouchableOpacity>
@@ -131,7 +132,8 @@ export default function HomeUI({ navigation }) {
           <TextInput
             style={styles.txtInput}
             placeholder="Search Notes"
-            placeholderTextColor={"#440044FF"}
+            // placeholderTextColor={"#440044FF"}
+            placeholderTextColor={"#9C745588"}
           />
           <TouchableOpacity
             onPress={() => {
@@ -154,7 +156,7 @@ export default function HomeUI({ navigation }) {
         style={styles.flatlistStyle}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
-        data={notes}
+        data={emptyNotes}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         renderItem={({ item }) => {
@@ -190,7 +192,12 @@ export default function HomeUI({ navigation }) {
           navigation.navigate("NoteUI");
         }}
       >
-        <Ionicons name="pencil-outline" size={40} color={"#E8D3FFAD"} />
+        <Ionicons
+          name="pencil-outline"
+          size={40}
+          // color={"#E8D3FFAD"}
+          color={"#FAF3E0"} // light beige to contrast the dark brown
+        />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -205,7 +212,8 @@ const styles = StyleSheet.create({
   headingTxt: {
     fontSize: 30,
     fontWeight: "600",
-    color: "#440044FF",
+    // color: "#440044FF",
+    color: "#6B4226",
   },
   headingContainer: {
     alignItems: "center",
@@ -217,7 +225,8 @@ const styles = StyleSheet.create({
   deleteIcon: {
     width: 25,
     height: 25,
-    tintColor: "#440044FF",
+    // tintColor: "#440044FF",
+    tintColor: "#6B4226",
   },
   searchContainer: {
     alignItems: "center",
@@ -226,6 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-evenly",
     height: "15px",
+    borderColor: "#9C7455",
   },
 
   txtInputContainer: {
@@ -252,7 +262,8 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     shadowColor: "#000",
     position: "absolute",
-    backgroundColor: "#391639FF",
+    // backgroundColor: "#391639FF",
+    backgroundColor: "#8C5E3C",
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     padding: 10,
@@ -262,15 +273,16 @@ const styles = StyleSheet.create({
   },
 
   flatlistContainer: {
+    elevation: 8,
     borderRadius: 12,
-    backgroundColor: "#DCCCF7FF",
+    // backgroundColor: "#DCCCF7FF",
+    backgroundColor: "#F5E6C5",
     height: 150,
     borderWidth: 1,
     marginBottom: 10,
   },
 
   flatlistStyle: {
-    // elevation: 8,
     marginTop: 20,
     marginLeft: 16,
     marginRight: 16,
@@ -280,16 +292,19 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginLeft: 12,
     marginRight: 12,
-    fontWeight: "900",
+    fontWeight: "700",
+    color: "#673C1FFF",
   },
   flatlistTxtBody: {
     margin: 12,
+    color: "#513624FF",
   },
 
   emptyNote: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: "30%",
   },
 
   txtEmptyNote: {

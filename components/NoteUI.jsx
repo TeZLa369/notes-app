@@ -60,7 +60,8 @@ export default function NoteUI({ navigation }) {
           <TextInput
             multiline
             placeholder="Title goes here..."
-            placeholderTextColor="#44004493"
+            // placeholderTextColor="#44004493"
+            placeholderTextColor={"#8C5E3C"}
             style={styles.titleInput}
           />
 
@@ -69,7 +70,8 @@ export default function NoteUI({ navigation }) {
               multiline
               scrollEnabled
               placeholder="Note goes here..."
-              placeholderTextColor="#44004493"
+              // placeholderTextColor="#44004493"
+              placeholderTextColor={"#8C5E3C"}
               style={[
                 styles.bodyInput,
                 { textAlign: alignment, textAlignVertical: "top" },
@@ -138,7 +140,7 @@ function IconButton({ icon, active, onPress }) {
       <IconComponent
         name={icon}
         size={32}
-        color={active ? "#440044" : darkColor.color}
+        color={active ? "#8C5E3C" : darkColor.color}
       />
     </TouchableOpacity>
   );
@@ -165,16 +167,18 @@ const styles = StyleSheet.create({
   titleInput: {
     color: darkColor.color,
     fontSize: 25,
+    marginTop: 0,
     margin: 12,
     fontWeight: "600",
-    maxHeight: 120,
+    // maxHeight: 320,
   },
   bodyContainer: {
     marginHorizontal: 12,
-    backgroundColor: "#E8D3FFFF",
+    // backgroundColor: "#E8D3FFFF",
+    backgroundColor: "#F5E6C5",
     borderRadius: 12,
     elevation: 5,
-    height: 500,
+    minHeight: 500,
   },
   bodyInput: {
     flex: 1,
@@ -191,7 +195,8 @@ const styles = StyleSheet.create({
     right: "5%",
     height: 60,
     borderRadius: 18,
-    backgroundColor: "#DEC1FDFF",
+    // backgroundColor: "#DEC1FDFF",
+    backgroundColor: "#F5E6C5",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
@@ -206,6 +211,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   iconBtnActive: {
-    backgroundColor: "#44004428",
+    // backgroundColor: "#44004428",
+    backgroundColor: "#6B422620", // subtle brown tint on press
   },
 });

@@ -41,7 +41,8 @@ const DeletedUI = ({ navigation }) => {
           <TextInput
             style={DeleteStyles.txtInput}
             placeholder="Search Notes"
-            placeholderTextColor={"#440044FF"}
+            // placeholderTextColor={"#440044FF"}
+            placeholderTextColor={"#8C5E3C"}
           />
           <TouchableOpacity
             onPress={() => {
@@ -49,7 +50,8 @@ const DeletedUI = ({ navigation }) => {
             }}
           >
             <Ionicons
-              color={"#440044FF"}
+              // color={"#440044FF"}
+              color={"#6B4226"}
               style={DeleteStyles.searchIcon}
               name="search-sharp"
               size={26}
@@ -117,6 +119,7 @@ const DeleteStyles = StyleSheet.create({
   headingTxt: {
     fontWeight: 600,
     fontSize: 24,
+    color: "#6B4226",
   },
   searchContainer: {
     alignItems: "center",
@@ -136,19 +139,22 @@ const DeleteStyles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     borderStyle: "solid",
-    borderColor: "#440044FF",
+    // borderColor: "#440044FF",
+    borderColor: "#9C7455",
   },
   infoTxt: {
     marginTop: 8,
     marginLeft: 12,
     marginRight: 12,
     textAlign: "center",
-    color: "#FF00006A",
+    // color: "#FF00006A",
+    color: "#6E4B0071",
     fontWeight: 500,
   },
   flatlistContainer: {
     borderRadius: 12,
-    backgroundColor: "#DCCCF7FF",
+    // backgroundColor: "#DCCCF7FF",
+    backgroundColor: "#F5E6C5",
     height: 150,
     borderWidth: 1,
     marginBottom: 10,
@@ -165,9 +171,11 @@ const DeleteStyles = StyleSheet.create({
     marginTop: 12,
     marginLeft: 12,
     marginRight: 12,
-    fontWeight: "900",
+    fontWeight: "700",
+    color: "#673C1FFF",
   },
   flatlistTxtBody: {
+    color: "#513624FF",
     margin: 12,
   },
 
