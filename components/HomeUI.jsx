@@ -12,13 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions } from "react-native";
 import { useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import bgStyle from "../assets/styles/bgStyle";
-// import { DeletedUI } from "./DeletedUI";
-// import { NoteUI } from "./NoteUI";
+import NoteUI from "./NoteUI";
 
-export default function HomeUI() {
+export default function HomeUI({ navigation }) {
   let [taps, settaps] = useState(0);
   const screenWidth = Dimensions.get("window").width;
   // 60 = total horizontal padding + spacing between cards
@@ -118,7 +115,7 @@ export default function HomeUI() {
         {taps > 10 ? settaps((taps = 0)) : null}
         <TouchableOpacity
           onPress={() => {
-            alert("Delete button");
+            navigation.navigate("DeletedUI");
           }}
         >
           <Image
@@ -187,16 +184,13 @@ export default function HomeUI() {
 
       {/* //! FLOATING BTN */}
       <TouchableOpacity
+        activeOpacity={0.6}
+        style={styles.floatingBtn}
         onPress={() => {
-          alert("Add icon is pressed");
+          navigation.navigate("NoteUI");
         }}
       >
-        <Ionicons
-          style={styles.floatingBtn}
-          name="pencil-outline"
-          size={40}
-          color={"#E8D3FFAD"}
-        />
+        <Ionicons name="pencil-outline" size={40} color={"#E8D3FFAD"} />
       </TouchableOpacity>
     </SafeAreaView>
   );

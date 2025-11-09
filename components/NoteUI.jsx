@@ -1,212 +1,211 @@
+import React, { useState } from "react";
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons, Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import bgStyle from "../assets/styles/bgStyle";
 import darkColor from "../assets/styles/darkColor";
-import { Ionicons } from "@expo/vector-icons";
-import { Feather } from "@expo/vector-icons";
-import { useState } from "react";
 
-export default function NoteUI({ naviagtion }) {
-  const [isAttach, setIsAttach] = useState(false);
-  const [isTxt, setIsTxt] = useState(false);
-  const [isCenter, setisCenter] = useState(false);
-  const [isRight, setisRight] = useState(false);
-  const [isLeft, setisLeft] = useState(false);
-  const [isJustify, setisJustify] = useState(false);
+export default function NoteUI({ navigation }) {
+  const [alignment, setAlignment] = useState("left");
+  const [activeBtn, setActiveBtn] = useState(null);
+
+  const handleHaptic = () =>
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+  const handleAlign = (alignType) => {
+    setAlignment(alignType);
+    handleHaptic();
+  };
+
   return (
     <SafeAreaView style={bgStyle.container}>
-      {/* //! HEADING */}
-      <View style={NoteStyles.headingContainer}>
-        <TouchableOpacity onPress={() => naviagtion.goBack()}>
-          <Ionicons name="arrow-back" size={40} color={darkColor.color} />
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color={darkColor.color} />
         </TouchableOpacity>
-        <View style={NoteStyles.insideHeadingContainer}>
-          <TouchableOpacity>
-            <Ionicons name="share" size={40} color={darkColor.color} />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Ionicons name="save" size={38} color={darkColor.color} />
-          </TouchableOpacity>
+
+        <View style={styles.headerRight}>
+          <Ionicons
+            name="share"
+            size={30}
+            color={darkColor.color}
+            style={styles.iconMargin}
+          />
+          <Ionicons name="save" size={28} color={darkColor.color} />
         </View>
       </View>
 
-      {/* //! TITLE TEXT */}
-      <TextInput
-        multiline={true}
-        placeholderTextColor={"#44004493"}
-        style={NoteStyles.headingTxt}
-        placeholder="Title goes here..."
-      />
-      {/* //! BODY TEXT */}
-      <View style={NoteStyles.bodyTxtContainer}>
-        <TextInput
-          multiline={true}
-          style={NoteStyles.bodyTxt}
-          placeholder="Note goes here..."
+      {/* CONTENT */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+        >
+          <TextInput
+            multiline
+            placeholder="Title goes here..."
+            placeholderTextColor="#44004493"
+            style={styles.titleInput}
+          />
+
+          <View style={styles.bodyContainer}>
+            <TextInput
+              multiline
+              scrollEnabled
+              placeholder="Note goes here..."
+              placeholderTextColor="#44004493"
+              style={[
+                styles.bodyInput,
+                { textAlign: alignment, textAlignVertical: "top" },
+              ]}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* BOTTOM BAR */}
+      <View style={styles.bottomBar}>
+        <IconButton
+          icon="attach"
+          active={activeBtn === "attach"}
+          onPress={() => {
+            setActiveBtn(activeBtn === "attach" ? null : "attach");
+            handleHaptic();
+          }}
         />
-      </View>
 
-      {/* //! BOTTOM BAR */}
-      <View style={NoteStyles.bottomBar}>
-        <TouchableOpacity
+        <IconButton
+          icon="text"
+          active={activeBtn === "text"}
           onPress={() => {
-            setIsAttach(!isAttach);
+            setActiveBtn(activeBtn === "text" ? null : "text");
+            handleHaptic();
           }}
-        >
-          <Ionicons
-            name="attach"
-            style={isAttach ? NoteStyles.btnEnabled : null}
-            size={40}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          onPress={() => {
-            setIsTxt(!isTxt);
-          }}
-        >
-          <Ionicons
-            name="text"
-            style={isTxt ? NoteStyles.btnEnabled : null}
-            size={38}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
+        <IconButton
+          icon="align-left"
+          active={alignment === "left"}
+          onPress={() => handleAlign("left")}
+        />
 
-        <TouchableOpacity
-          onPress={() => {
-            !isLeft ? setisJustify(!isJustify) : setisLeft(!isLeft),
-              setisJustify(!isJustify);
-            !isRight ? setisJustify(!isJustify) : setisRight(!isRight),
-              setisJustify(!isJustify);
-            !isCenter ? setisJustify(!isJustify) : setisCenter(!isCenter),
-              setisJustify(!isJustify);
-          }}
-        >
-          <Feather
-            name="align-justify"
-            style={isJustify ? NoteStyles.btnEnabled : null}
-            size={40}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
+        <IconButton
+          icon="align-center"
+          active={alignment === "center"}
+          onPress={() => handleAlign("center")}
+        />
 
-        <TouchableOpacity
-          onPress={() => {
-            !isRight ? setisLeft(!isLeft) : setisRight(!isRight),
-              setisLeft(!isLeft);
-            !isJustify ? setisLeft(!isLeft) : setisJustify(!isJustify),
-              setisLeft(!isLeft);
-            !isCenter ? setisLeft(!isLeft) : setisCenter(!isCenter),
-              setisLeft(!isLeft);
-          }}
-        >
-          <Feather
-            name="align-left"
-            style={isLeft ? NoteStyles.btnEnabled : null}
-            size={40}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
+        <IconButton
+          icon="align-right"
+          active={alignment === "right"}
+          onPress={() => handleAlign("right")}
+        />
 
-        <TouchableOpacity
-          onPress={() => {
-            !isRight ? setisCenter(!isCenter) : setisRight(!isRight),
-              setisCenter(!isCenter);
-            !isJustify ? setisCenter(!isCenter) : setisJustify(!isJustify),
-              setisCenter(!isCenter);
-            !isLeft ? setisCenter(!isCenter) : setisLeft(!isLeft),
-              setisCenter(!isCenter);
-          }}
-        >
-          <Feather
-            name="align-center"
-            style={isCenter ? NoteStyles.btnEnabled : null}
-            size={40}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            !isLeft ? setisRight(!isRight) : setisLeft(!isLeft),
-              setisRight(!isRight);
-            !isCenter ? setisRight(!isRight) : setisCenter(!isCenter),
-              setisRight(!isRight);
-            !isJustify ? setisRight(!isRight) : setisJustify(!isJustify),
-              setisRight(!isRight);
-          }}
-        >
-          <Feather
-            name="align-right"
-            size={40}
-            style={isRight ? NoteStyles.btnEnabled : null}
-            color={darkColor.color}
-          />
-        </TouchableOpacity>
+        <IconButton
+          icon="align-justify"
+          active={alignment === "justify"}
+          onPress={() => handleAlign("justify")}
+        />
       </View>
     </SafeAreaView>
   );
 }
 
-const NoteStyles = StyleSheet.create({
-  headingContainer: {
+/* Reusable icon button component */
+function IconButton({ icon, active, onPress }) {
+  const IconComponent = icon.startsWith("align") ? Feather : Ionicons;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.iconBtn, active && styles.iconBtnActive]}
+    >
+      <IconComponent
+        name={icon}
+        size={32}
+        color={active ? "#440044" : darkColor.color}
+      />
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    margin: 18,
+    marginTop: 20,
+  },
+  headerRight: {
     flexDirection: "row",
-    marginLeft: 12,
+    alignItems: "center",
+  },
+  iconMargin: {
     marginRight: 12,
-    alignItems: "center",
   },
-  insideHeadingContainer: {
-    alignItems: "center",
-    flexDirection: "row",
+  scrollContainer: {
+    paddingBottom: 120, // prevent overlap with bottom bar
   },
-  headingTxt: {
+  titleInput: {
     color: darkColor.color,
     fontSize: 25,
-    marginTop: 12,
-    marginLeft: 12,
-    marginRight: 12,
-    fontWeight: 700,
+    margin: 12,
+    fontWeight: "600",
+    maxHeight: 120,
   },
-  bodyTxtContainer: {
-    height: "74%",
+  bodyContainer: {
+    marginHorizontal: 12,
     backgroundColor: "#E8D3FFFF",
-    marginTop: 12,
     borderRadius: 12,
-    marginLeft: 12,
-    marginRight: 12,
+    elevation: 5,
+    height: 500,
   },
-  bodyTxt: {
-    letterSpacing: 1.5,
+  bodyInput: {
+    flex: 1,
     color: darkColor.color,
-    flexWrap: "wrap",
-    width: "100%",
-    paddingHorizontal: 12,
     fontSize: 16,
+    padding: 12,
+    letterSpacing: 1,
     fontStyle: "italic",
   },
   bottomBar: {
+    position: "absolute",
+    bottom: "5%",
+    left: "5%",
+    right: "5%",
     height: 60,
+    borderRadius: 18,
+    backgroundColor: "#DEC1FDFF",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    flexDirection: "row",
-    borderRadius: 18,
-    marginLeft: 12,
-    marginTop: 15,
-    marginRight: 12,
-    backgroundColor: "#E8D3FFFF",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
-  btnEnabled: {
+  iconBtn: {
+    borderRadius: 22,
     padding: 5,
+  },
+  iconBtnActive: {
     backgroundColor: "#44004428",
-    borderRadius: 20,
   },
 });
