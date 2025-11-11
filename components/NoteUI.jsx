@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,10 +15,27 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import bgStyle from "../assets/styles/bgStyle";
 import darkColor from "../assets/styles/darkColor";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function NoteUI({ navigation }) {
+export default function NoteUI({ navigation, route }) {
+  const noteID = route.params;
   const [alignment, setAlignment] = useState("left");
   const [activeBtn, setActiveBtn] = useState(null);
+  let [randomVal, setRandomVal] = useState(0);
+  const [funRun, setfunRun] = useState(false);
+  let [randomNumberBoolen, setRandomNumberBoolean] = useState(false);
+
+  const [note, setnote] = useState({
+    id: randomVal,
+    userNoteTitle: "",
+    userNoteBody: "",
+  });
+
+  const userNoteObj = {
+    id: randomVal,
+    userNoteTitle: note.userNoteTitle,
+    userNoteBody: note.userNoteBody,
+  };
 
   const handleHaptic = () =>
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -27,6 +45,94 @@ export default function NoteUI({ navigation }) {
     handleHaptic();
   };
 
+  const getKeys = async () => {
+    try {
+      const value = await AsyncStorage.getAllKeys();
+      if (value !== null) {
+        return value;
+      }
+    } catch (e) {
+      console.error("Failed to fetch keys", e);
+    }
+  };
+
+  // async function generateFourDigitRandom() {
+  //   try {
+  //     const oldKeys = await getKeys(); // wait for the keys first
+  //     const newKey = Math.floor(1000 + Math.random() * 9000);
+  //     console.log("new:", newKey);
+
+  //     // Check if the key already exists
+  //     if (oldKeys.includes(String(newKey))) {
+  //       console.log("Duplicate key found. Regenerating...");
+  //       return generateFourDigitRandom(); // recursive retry
+  //     }
+
+  //     // Unique key found
+  //     console.log("Unique key:", newKey);
+  //     setRandomVal(newKey);
+  //     setRandomNumberBoolean(true);
+  //   } catch (e) {
+  //     console.error("Error generating random key:", e);
+  //   }
+  // }
+
+  async function generateFourDigitRandom() {
+    const oldKeys = await getKeys();
+    const newKey = Math.floor(1000 + Math.random() * 9000);
+    if (oldKeys.includes(String(newKey))) return generateFourDigitRandom();
+    console.log(newKey);
+    return newKey;
+  }
+
+  useEffect(() => {
+    if (!randomNumberBoolen) {
+      generateFourDigitRandom();
+    }
+  }, [randomNumberBoolen]);
+
+  async function saveData(key, value) {
+    if (note.userNoteBody === "" && note.userNoteTitle === "") {
+      alert("There is nothing to save!");
+    } else if (note.userNoteTitle === "") {
+      alert("Please write a title!");
+    } else if (note.userNoteBody === "") {
+      alert("Please write a note!");
+    } else {
+      try {
+        if (typeof noteID === "number") {
+          userNoteObj.id = noteID;
+        }
+        await AsyncStorage.setItem(key, value);
+        console.log("Data saved successfully");
+        ToastAndroid.show("Data saved successfully", 500);
+      } catch (e) {
+        console.error("Failed to save data.", e);
+      }
+    }
+  }
+
+  const getData = async (key) => {
+    try {
+      const value = await AsyncStorage.getItem(key);
+      if (value !== null) {
+        // value previously stored
+        // console.log("Retrieved value:", value);
+        setnote(JSON.parse(value));
+        setfunRun(true);
+        // console.log("Data", note.userNoteBody);
+      }
+    } catch (e) {
+      console.error("Failed to fetch data", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!funRun && noteID) {
+      getData(String(noteID));
+    }
+  }, [funRun, noteID]);
+
   return (
     <SafeAreaView style={bgStyle.container}>
       {/* HEADER */}
@@ -35,14 +141,31 @@ export default function NoteUI({ navigation }) {
           <Ionicons name="arrow-back" size={30} color={darkColor.color} />
         </TouchableOpacity>
 
+        {/* //! SHARE */}
         <View style={styles.headerRight}>
-          <Ionicons
-            name="share"
-            size={30}
-            color={darkColor.color}
-            style={styles.iconMargin}
-          />
-          <Ionicons name="save" size={28} color={darkColor.color} />
+          <TouchableOpacity onPress={() => {}}>
+            <Ionicons
+              name="share"
+              size={30}
+              color={darkColor.color}
+              style={styles.iconMargin}
+            />
+          </TouchableOpacity>
+
+          {/* //! SAVE */}
+          <TouchableOpacity
+            onPress={async () => {
+              const keyToSave =
+                typeof noteID !== "number"
+                  ? await generateFourDigitRandom()
+                  : noteID;
+              console.log("key: ", keyToSave);
+              userNoteObj.id = keyToSave;
+              saveData(String(keyToSave), JSON.stringify(userNoteObj));
+            }}
+          >
+            <Ionicons name="save" size={28} color={darkColor.color} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -57,18 +180,25 @@ export default function NoteUI({ navigation }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContainer}
         >
+          {/* //! TITLE */}
           <TextInput
             multiline
             placeholder="Title goes here..."
             // placeholderTextColor="#44004493"
             placeholderTextColor={"#8C5E3C"}
             style={styles.titleInput}
+            value={note.userNoteTitle}
+            // onChangeText={setuserTitleTxt}
+            onChangeText={(text) => setnote({ ...note, userNoteTitle: text })}
           />
 
+          {/* //! BODY TEXT */}
           <View style={styles.bodyContainer}>
             <TextInput
               multiline
               scrollEnabled
+              value={note.userNoteBody}
+              onChangeText={(text) => setnote({ ...note, userNoteBody: text })}
               placeholder="Note goes here..."
               // placeholderTextColor="#44004493"
               placeholderTextColor={"#8C5E3C"}
@@ -89,6 +219,7 @@ export default function NoteUI({ navigation }) {
           onPress={() => {
             setActiveBtn(activeBtn === "attach" ? null : "attach");
             handleHaptic();
+            getKeys();
           }}
         />
 
@@ -128,7 +259,6 @@ export default function NoteUI({ navigation }) {
     </SafeAreaView>
   );
 }
-
 /* Reusable icon button component */
 function IconButton({ icon, active, onPress }) {
   const IconComponent = icon.startsWith("align") ? Feather : Ionicons;

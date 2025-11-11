@@ -11,17 +11,113 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions } from "react-native";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import bgStyle from "../assets/styles/bgStyle";
-import NoteUI from "./NoteUI";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
+let userNotes = [];
+let userKeys = [];
 export default function HomeUI({ navigation }) {
+  const [notes, setNotes] = useState([]); // <-- use state
   let [taps, settaps] = useState(0);
   const screenWidth = Dimensions.get("window").width;
   // 60 = total horizontal padding + spacing between cards
   const cardWidth = (screenWidth - 60) / 2;
-  const emptyNotes = [];
-  const notes = [
+  const [val, setVal] = useState(0);
+
+  const getData = async (key) => {
+    try {
+      const value = await AsyncStorage.getItem(key);
+      if (value !== null) {
+        console.log("Retrieved value:", value);
+        return value;
+      }
+    } catch (e) {
+      console.error("Failed to fetch data", e);
+    }
+  };
+
+  async function saveData(key, value) {
+    try {
+      await AsyncStorage.setItem(key, value);
+      console.log("Data saved successfully");
+    } catch (e) {
+      console.error("Failed to save data.", e);
+    }
+  }
+
+  let value = [];
+  const getKeys = async () => {
+    try {
+      value = await AsyncStorage.getAllKeys();
+      // await AsyncStorage.clear();
+      // console.log(value);
+      return value;
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  async function deleteAll() {
+    try {
+      await AsyncStorage.clear();
+      setNotes([]); // clear UI too
+      alert("All notes deleted!");
+    } catch (e) {
+      console.error("Failed to delete notes", e);
+    }
+  }
+
+  // Example: define async function that awaits and then logs
+
+  async function loadAndLogKeys() {
+    try {
+      userKeys = await getKeys();
+      // console.log("Key values are:", userKeys);
+      await getKeyValues(); // wait for note loading
+      // console.log("All notes:", userNotes);
+    } catch (err) {
+      console.log("Error loading keys:", err);
+    }
+  }
+
+  async function getKeyValues() {
+    for (const key of userKeys) {
+      // console.log("Fetching data for key:", key);
+      try {
+        const value = await getData(String(key)); // ✅ wait for AsyncStorage
+        if (value) {
+          userNotes.push(JSON.parse(value)); // ✅ store parsed data
+        }
+      } catch (err) {
+        console.log("Error parsing data for key:", key, err);
+      }
+    }
+  }
+
+  const loadNotes = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const result = await AsyncStorage.multiGet(keys);
+      const parsedNotes = result.map(([key, value]) => JSON.parse(value));
+      setNotes(parsedNotes);
+    } catch (e) {
+      console.error("Failed to load notes:", e);
+    }
+  };
+  useEffect(() => {
+    loadNotes();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadNotes();
+    }, [])
+  );
+
+  loadAndLogKeys();
+  const notes2 = [
     {
       id: 1,
       title: "Buy milk",
@@ -99,23 +195,31 @@ export default function HomeUI({ navigation }) {
     },
   ];
 
+  if (taps > 10) {
+    alert("WHY BRO WHY???");
+    settaps((taps = 0));
+  }
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={bgStyle.container}>
       {/* //! HEADING */}
       <View style={styles.headingContainer}>
-        <Text
+        <TouchableOpacity
           onPress={() => {
             settaps(taps + 1);
           }}
-          style={styles.headingTxt}
         >
-          Notebook
-        </Text>
-        {taps > 10 ? ToastAndroid.show("WHY BRO WHY???", 500) : null}
-        {taps > 10 ? settaps((taps = 0)) : null}
+          <Text style={styles.headingTxt}>Notebook</Text>
+        </TouchableOpacity>
+        {/* {taps > 10 ?  : ""}
+        {taps > 10 ? settaps((taps = 0)) : null} */}
+
+        {/* //! DELETE */}
         <TouchableOpacity
           onPress={() => {
-            navigation.navigate("DeletedUI");
+            // navigation.navigate("DeletedUI");
+            // console.log();
+            deleteAll();
           }}
         >
           <Image
@@ -135,9 +239,11 @@ export default function HomeUI({ navigation }) {
             // placeholderTextColor={"#440044FF"}
             placeholderTextColor={"#9C745588"}
           />
+          {/* //! SEARCH */}
           <TouchableOpacity
             onPress={() => {
-              alert("Search icon is pressed");
+              // alert("Search icon is pressed");
+              getData("0");
             }}
           >
             <Ionicons
@@ -156,22 +262,24 @@ export default function HomeUI({ navigation }) {
         style={styles.flatlistStyle}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
-        data={emptyNotes}
+        data={notes}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         renderItem={({ item }) => {
           return (
             <TouchableOpacity
               onPress={() => {
-                ToastAndroid.show(item.title, 500);
+                navigation.navigate("NoteUI", item.id);
               }}
             >
               <View style={[styles.flatlistContainer, { width: cardWidth }]}>
-                <Text style={styles.flatlistTxtHeading}>{item.title}</Text>
+                <Text style={styles.flatlistTxtHeading}>
+                  {item.userNoteTitle}
+                </Text>
                 <Text style={styles.flatlistTxtBody}>
-                  {item.body.length > 75
-                    ? item.body.slice(0, 75) + "..."
-                    : item.body}
+                  {item?.userNoteBody?.length > 75
+                    ? item?.userNoteBody?.slice(0, 75) + "..."
+                    : item?.userNoteBody}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -189,7 +297,10 @@ export default function HomeUI({ navigation }) {
         activeOpacity={0.6}
         style={styles.floatingBtn}
         onPress={() => {
-          navigation.navigate("NoteUI");
+          navigation.navigate("NoteUI", {
+            noteTitle: "",
+            noteBody: "",
+          });
         }}
       >
         <Ionicons
