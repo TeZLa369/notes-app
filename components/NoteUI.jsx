@@ -9,6 +9,8 @@ import {
   ToastAndroid,
   TouchableOpacity,
   View,
+  Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
@@ -16,6 +18,11 @@ import * as Haptics from "expo-haptics";
 import bgStyle from "../assets/styles/bgStyle";
 import darkColor from "../assets/styles/darkColor";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Share } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import { PDFDocument, PDFPage } from "react-native-pdf-lib";
+import * as Sharing from "expo-sharing";
+import * as Print from "expo-print";
 
 export default function NoteUI({ navigation, route }) {
   const noteID = route.params;
@@ -24,6 +31,7 @@ export default function NoteUI({ navigation, route }) {
   let [randomVal, setRandomVal] = useState(0);
   const [funRun, setfunRun] = useState(false);
   let [randomNumberBoolen, setRandomNumberBoolean] = useState(false);
+  // const path = RNFS.DocumentDirectoryPath + `/Note_${randomVal}.txt`;
 
   const [note, setnote] = useState({
     id: randomVal,
@@ -35,6 +43,90 @@ export default function NoteUI({ navigation, route }) {
     id: randomVal,
     userNoteTitle: note.userNoteTitle,
     userNoteBody: note.userNoteBody,
+  };
+
+  // async function exportTextFile(filename, content) {
+  //   try {
+  //     await Share.share({
+  //       title: "Share File",
+  //       message:
+  //         "Title: " +
+  //         userNoteObj.userNoteTitle +
+  //         "\nNote Body: " +
+  //         userNoteObj.userNoteBody,
+  //     });
+  //   } catch (error) {
+  //     console.error("Failed to send note! ", error);
+  //   }
+  // }
+
+  // const textToPDF = async () => {
+  //   try {
+  //     // Get document directory path
+  //     const docDir = FileSystem.documentDirectory;
+
+  //     // PDF file path
+  //     const pdfPath = `${docDir}${userNoteObj.userNoteTitle}.pdf`;
+
+  //     // Create PDF page
+  //     const page = PDFPage.create()
+  //       .setMediaBox(612, 792) // standard A4 size
+  //       .drawText(userNoteObj.userNoteTitle, {
+  //         x: 50,
+  //         y: 740,
+  //         color: darkColor.color,
+  //         fontSize: 24,
+  //       })
+  //       .drawText(userNoteObj.userNoteBody, {
+  //         x: 50,
+  //         y: 700,
+  //         color: "#7C563AFF",
+  //         fontSize: 16,
+  //       });
+
+  //     // Create and write PDF
+  //     const pdfDoc = PDFDocument.create(pdfPath).addPages(page);
+  //     await pdfDoc.write();
+
+  //     Alert.alert("Success", `PDF saved at: ${pdfPath}`);
+  //     console.log("✅ PDF saved:", pdfPath);
+
+  //     return pdfPath;
+  //   } catch (e) {
+  //     console.log("❌ Failed to create PDF:", e);
+  //   }
+  // };
+
+  const textToPDF = async () => {
+    try {
+      const html = `
+      <html>
+        <body style="font-family: sans-serif; padding: 20px;">
+          <h1>${userNoteObj.userNoteTitle}</h1>
+          <p>${userNoteObj.userNoteBody}</p>
+        </body>
+      </html>
+    `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const newPath = `${FileSystem.documentDirectory}${userNoteObj.userNoteTitle}.pdf`;
+
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newPath,
+      });
+
+      Alert.alert("Success", `PDF saved at: ${newPath}`);
+      console.log("✅ PDF saved:", newPath);
+      try {
+        await Sharing.shareAsync(newPath);
+      } catch (e) {
+        console.error("Failed to send PDF! ", e);
+      }
+      return newPath;
+    } catch (error) {
+      console.log("❌ Failed to create PDF:", error);
+    }
   };
 
   const handleHaptic = () =>
@@ -91,6 +183,27 @@ export default function NoteUI({ navigation, route }) {
     }
   }, [randomNumberBoolen]);
 
+  async function deleteNote(key) {
+    Alert.alert("Delete Note", "Do you want to delete the note?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        onPress: () => {
+          try {
+            AsyncStorage.removeItem(key);
+            console.log("Note has been deleted!");
+            navigation.goBack();
+          } catch (error) {
+            console.error("Failed to delete note: ", error);
+          }
+        },
+      },
+    ]);
+  }
+
   async function saveData(key, value) {
     if (note.userNoteBody === "" && note.userNoteTitle === "") {
       alert("There is nothing to save!");
@@ -143,7 +256,16 @@ export default function NoteUI({ navigation, route }) {
 
         {/* //! SHARE */}
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => {}}>
+          <TouchableOpacity
+            onPress={async () => {
+              await generateFourDigitRandom();
+              // await exportTextFile(
+              //   typeof noteID === "number" ? String(noteID) : String(randomVal),
+              //   JSON.stringify(userNoteObj)
+              // );
+              textToPDF();
+            }}
+          >
             <Ionicons
               name="share"
               size={30}
@@ -165,6 +287,30 @@ export default function NoteUI({ navigation, route }) {
             }}
           >
             <Ionicons name="save" size={28} color={darkColor.color} />
+          </TouchableOpacity>
+
+          {/* //! DELETE */}
+          <TouchableOpacity
+            disabled={typeof noteID === "number" ? false : true}
+            onPress={async () => {
+              // navigation.navigate("DeletedUI");
+              // console.log();
+              // deleteAll();
+              console.log("working");
+              await deleteNote(String(noteID));
+            }}
+          >
+            <Ionicons
+              style={[
+                styles.deleteIcon,
+                {
+                  display: typeof noteID === "number" ? "" : "none",
+                },
+              ]}
+              color={"#6B4226"}
+              size={28}
+              name="trash-sharp"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -284,12 +430,18 @@ const styles = StyleSheet.create({
     margin: 18,
     marginTop: 20,
   },
+  deleteIcon: {
+    marginLeft: 8,
+    // tintColor: "#440044FF",
+    tintColor: "#6B4226",
+  },
   headerRight: {
     flexDirection: "row",
-    alignItems: "center",
+    // alignItems: "center",
+    justifyContent: "space-evenly",
   },
   iconMargin: {
-    marginRight: 12,
+    marginRight: 8,
   },
   scrollContainer: {
     paddingBottom: 120, // prevent overlap with bottom bar

@@ -6,7 +6,7 @@ import {
   View,
   TextInput,
   FlatList,
-  ToastAndroid,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,12 +60,27 @@ export default function HomeUI({ navigation }) {
   };
 
   async function deleteAll() {
-    try {
-      await AsyncStorage.clear();
-      setNotes([]); // clear UI too
-      alert("All notes deleted!");
-    } catch (e) {
-      console.error("Failed to delete notes", e);
+    if (!userNotes.length > 0) {
+      Alert.alert("Error!", "Nothing to delete!");
+    } else {
+      try {
+        Alert.alert("Delete All", "Do you really want to delete all notes?", [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            onPress: async () => {
+              await AsyncStorage.clear();
+              setNotes([]); // clear UI too
+              alert("All notes are deleted!");
+            },
+          },
+        ]);
+      } catch (e) {
+        console.error("Failed to delete notes", e);
+      }
     }
   }
 
@@ -196,7 +211,7 @@ export default function HomeUI({ navigation }) {
   ];
 
   if (taps > 10) {
-    alert("WHY BRO WHY???");
+    Alert.alert("Seriously???", "WHY BRO WHY???");
     settaps((taps = 0));
   }
 
@@ -219,13 +234,17 @@ export default function HomeUI({ navigation }) {
           onPress={() => {
             // navigation.navigate("DeletedUI");
             // console.log();
+            // deleteAll();
+          }}
+          onLongPress={() => {
             deleteAll();
           }}
         >
-          <Image
+          <Ionicons
             style={styles.deleteIcon}
             color={"#6B4226"}
-            source={require("../assets/icons/delete.png")}
+            size={28}
+            name="trash-sharp"
           />
         </TouchableOpacity>
       </View>
@@ -334,8 +353,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   deleteIcon: {
-    width: 25,
-    height: 25,
+    marginLeft: 8,
     // tintColor: "#440044FF",
     tintColor: "#6B4226",
   },
