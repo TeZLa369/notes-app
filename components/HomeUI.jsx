@@ -15,28 +15,29 @@ import React, { useEffect, useState } from "react";
 import bgStyle from "../assets/styles/bgStyle";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
 
-let userNotes = [];
-let userKeys = [];
+// let userNotes = [];
+// let userKeys = [];
 export default function HomeUI({ navigation }) {
   const [notes, setNotes] = useState([]); // <-- use state
   let [taps, settaps] = useState(0);
   const screenWidth = Dimensions.get("window").width;
-  // 60 = total horizontal padding + spacing between cards
   const cardWidth = (screenWidth - 60) / 2;
-  const [val, setVal] = useState(0);
+  // 60 = total horizontal padding + spacing between cards
+  // const [val, setVal] = useState(0);
 
-  const getData = async (key) => {
-    try {
-      const value = await AsyncStorage.getItem(key);
-      if (value !== null) {
-        console.log("Retrieved value:", value);
-        return value;
-      }
-    } catch (e) {
-      console.error("Failed to fetch data", e);
-    }
-  };
+  // const getData = async (key) => {
+  //   try {
+  //     const value = await AsyncStorage.getItem(key);
+  //     if (value !== null) {
+  //       // console.log("Retrieved value:", value);
+  //       return value;
+  //     }
+  //   } catch (e) {
+  //     console.error("Failed to fetch data", e);
+  //   }
+  // };
 
   async function saveData(key, value) {
     try {
@@ -46,75 +47,123 @@ export default function HomeUI({ navigation }) {
       console.error("Failed to save data.", e);
     }
   }
+  let userDeletedNoteObj = [];
 
-  let value = [];
-  const getKeys = async () => {
-    try {
-      value = await AsyncStorage.getAllKeys();
-      // await AsyncStorage.clear();
-      // console.log(value);
-      return value;
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // let value = [];
+  // const getKeys = async () => {
+  //   try {
+  //     value = await AsyncStorage.getAllKeys();
+  //     // await AsyncStorage.clear();
+  //     // console.log(value);
+  //     return value;
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // };
 
-  async function deleteAll() {
-    if (!userNotes.length > 0) {
-      Alert.alert("Error!", "Nothing to delete!");
-    } else {
-      try {
-        Alert.alert("Delete All", "Do you really want to delete all notes?", [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Delete",
-            onPress: async () => {
-              await AsyncStorage.clear();
-              setNotes([]); // clear UI too
-              alert("All notes are deleted!");
-            },
-          },
-        ]);
-      } catch (e) {
-        console.error("Failed to delete notes", e);
-      }
-    }
+  async function deleteAllNotes() {
+    Alert.alert("Delete Note", "Do you want to delete the note?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        onPress: async () => {
+          try {
+            let i = 0;
+            const newKeys = [];
+            const noteKeys = await AsyncStorage.getAllKeys();
+            noteKeys.forEach((x) => {
+              if (!x.startsWith("delete")) {
+                newKeys[i] = x;
+                i++;
+              }
+            });
+
+            try {
+              let deleteKeys = [];
+              let j = 0;
+              newKeys.forEach((x) => {
+                deleteKeys[j] = "delete" + x;
+                j++;
+              });
+
+              for (let k = 0; k < notes.length; k++) {
+                userDeletedNoteObj.push({
+                  id: deleteKeys[k],
+                  userNoteTitle: notes[k].userNoteTitle,
+                  userNoteBody: notes[k].userNoteBody,
+                });
+              }
+              // console.log("OBJECT", userDeletedNoteObj);
+
+              const pairs = userDeletedNoteObj.map((note, x) => [
+                deleteKeys[x],
+                JSON.stringify(note),
+              ]);
+              console.log(pairs);
+              await AsyncStorage.multiSet(pairs);
+            } catch (error) {
+              console.error("Failed to save notes: ", error);
+            }
+            try {
+              await AsyncStorage.multiRemove(newKeys);
+              setNotes([]);
+            } catch (error) {
+              console.error("Failed to delete notes: ", error);
+            }
+
+            console.log("Note has been deleted!");
+          } catch (error) {
+            console.error("Failed to delete note: ", error);
+          }
+        },
+      },
+    ]);
   }
 
   // Example: define async function that awaits and then logs
 
-  async function loadAndLogKeys() {
-    try {
-      userKeys = await getKeys();
-      // console.log("Key values are:", userKeys);
-      await getKeyValues(); // wait for note loading
-      // console.log("All notes:", userNotes);
-    } catch (err) {
-      console.log("Error loading keys:", err);
-    }
-  }
+  // async function loadAndLogKeys() {
+  //   try {
+  //     userKeys = await getKeys();
+  //     // console.log("Key values are:", userKeys);
+  //     await getKeyValues(); // wait for note loading
+  //     // console.log("All notes:", userNotes);
+  //   } catch (err) {
+  //     console.log("Error loading keys:", err);
+  //   }
+  // }
 
-  async function getKeyValues() {
-    for (const key of userKeys) {
-      // console.log("Fetching data for key:", key);
-      try {
-        const value = await getData(String(key)); // ✅ wait for AsyncStorage
-        if (value) {
-          userNotes.push(JSON.parse(value)); // ✅ store parsed data
-        }
-      } catch (err) {
-        console.log("Error parsing data for key:", key, err);
-      }
-    }
-  }
+  // async function getKeyValues() {
+  //   for (const key of userKeys) {
+  //     // console.log("Fetching data for key:", key);
+  //     try {
+  //       const value = await getData(String(key)); // ✅ wait for AsyncStorage
+  //       if (value) {
+  //         userNotes.push(JSON.parse(value)); // ✅ store parsed data
+  //       }
+  //     } catch (err) {
+  //       console.log("Error parsing data for key:", key, err);
+  //     }
+  //   }
+  // }
 
   const loadNotes = async () => {
     try {
-      const keys = await AsyncStorage.getAllKeys();
+      let i = 0;
+      let numKeys = [];
+      let keys = await AsyncStorage.getAllKeys();
+      numKeys = keys.forEach((index) => {
+        if (!index.startsWith("delete")) {
+          numKeys[i] = index;
+          i++;
+        }
+        keys = numKeys;
+      });
       const result = await AsyncStorage.multiGet(keys);
+      // console.log("result:", keys);
       const parsedNotes = result.map(([key, value]) => JSON.parse(value));
       setNotes(parsedNotes);
     } catch (e) {
@@ -131,84 +180,84 @@ export default function HomeUI({ navigation }) {
     }, [])
   );
 
-  loadAndLogKeys();
-  const notes2 = [
-    {
-      id: 1,
-      title: "Buy milk",
-      body: "Pick up a carton of low-fat milk from the store.",
-    },
-    {
-      id: 2,
-      title: "Finish project",
-      body: "Complete the final report and submit it before the deadline.",
-    },
-    {
-      id: 3,
-      title: "Call mom",
-      body: "Give mom a quick call to check in and catch up.",
-    },
-    {
-      id: 4,
-      title: "Pay electricity bill",
-      body: "Log in to the utility website and pay this month’s bill.",
-    },
-    {
-      id: 5,
-      title: "Book dentist appointment",
-      body: "Schedule a routine check-up with the dentist.",
-    },
-    {
-      id: 6,
-      title: "Clean the kitchen",
-      body: "Wash dishes, wipe counters, and mop the floor",
-    },
-    {
-      id: 7,
-      title: "Read 20 pages of a book",
-      body: "Continue reading the novel and mark progress.",
-    },
-    {
-      id: 8,
-      title: "Go for a run",
-      body: "Run 3 kilometers around the park for exercise.",
-    },
-    {
-      id: 9,
-      title: "Prepare presentation slides",
-      body: "Design slides with visuals and bullet points for the meeting.",
-    },
-    {
-      id: 10,
-      title: "Reply to emails",
-      body: "Respond to pending work and personal emails.",
-    },
-    {
-      id: 11,
-      title: "Organize desk",
-      body: "Clear clutter, file papers, and arrange stationery neatly.",
-    },
-    {
-      id: 12,
-      title: "Buy groceries",
-      body: "Get vegetables, fruits, and other weekly essentials.",
-    },
-    {
-      id: 13,
-      title: "Water the plants",
-      body: "Give the indoor and balcony plants enough water.",
-    },
-    {
-      id: 14,
-      title: "Plan weekend trip",
-      body: "Research destinations, book tickets, and plan itinerary.",
-    },
-    {
-      id: 15,
-      title: "Update resume",
-      body: "Add recent work experience and polish formatting.",
-    },
-  ];
+  // loadAndLogKeys();
+  // const notes2 = [
+  //   {
+  //     id: 1,
+  //     title: "Buy milk",
+  //     body: "Pick up a carton of low-fat milk from the store.",
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Finish project",
+  //     body: "Complete the final report and submit it before the deadline.",
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Call mom",
+  //     body: "Give mom a quick call to check in and catch up.",
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "Pay electricity bill",
+  //     body: "Log in to the utility website and pay this month’s bill.",
+  //   },
+  //   {
+  //     id: 5,
+  //     title: "Book dentist appointment",
+  //     body: "Schedule a routine check-up with the dentist.",
+  //   },
+  //   {
+  //     id: 6,
+  //     title: "Clean the kitchen",
+  //     body: "Wash dishes, wipe counters, and mop the floor",
+  //   },
+  //   {
+  //     id: 7,
+  //     title: "Read 20 pages of a book",
+  //     body: "Continue reading the novel and mark progress.",
+  //   },
+  //   {
+  //     id: 8,
+  //     title: "Go for a run",
+  //     body: "Run 3 kilometers around the park for exercise.",
+  //   },
+  //   {
+  //     id: 9,
+  //     title: "Prepare presentation slides",
+  //     body: "Design slides with visuals and bullet points for the meeting.",
+  //   },
+  //   {
+  //     id: 10,
+  //     title: "Reply to emails",
+  //     body: "Respond to pending work and personal emails.",
+  //   },
+  //   {
+  //     id: 11,
+  //     title: "Organize desk",
+  //     body: "Clear clutter, file papers, and arrange stationery neatly.",
+  //   },
+  //   {
+  //     id: 12,
+  //     title: "Buy groceries",
+  //     body: "Get vegetables, fruits, and other weekly essentials.",
+  //   },
+  //   {
+  //     id: 13,
+  //     title: "Water the plants",
+  //     body: "Give the indoor and balcony plants enough water.",
+  //   },
+  //   {
+  //     id: 14,
+  //     title: "Plan weekend trip",
+  //     body: "Research destinations, book tickets, and plan itinerary.",
+  //   },
+  //   {
+  //     id: 15,
+  //     title: "Update resume",
+  //     body: "Add recent work experience and polish formatting.",
+  //   },
+  // ];
 
   if (taps > 10) {
     Alert.alert("Seriously???", "WHY BRO WHY???");
@@ -221,6 +270,7 @@ export default function HomeUI({ navigation }) {
       <View style={styles.headingContainer}>
         <TouchableOpacity
           onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             settaps(taps + 1);
           }}
         >
@@ -232,12 +282,16 @@ export default function HomeUI({ navigation }) {
         {/* //! DELETE */}
         <TouchableOpacity
           onPress={() => {
-            // navigation.navigate("DeletedUI");
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+            navigation.navigate("DeletedUI");
             // console.log();
             // deleteAll();
           }}
           onLongPress={() => {
-            deleteAll();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+            deleteAllNotes();
           }}
         >
           <Ionicons
@@ -261,6 +315,8 @@ export default function HomeUI({ navigation }) {
           {/* //! SEARCH */}
           <TouchableOpacity
             onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
               // alert("Search icon is pressed");
               getData("0");
             }}
@@ -288,7 +344,8 @@ export default function HomeUI({ navigation }) {
           return (
             <TouchableOpacity
               onPress={() => {
-                navigation.navigate("NoteUI", item.id);
+                navigation.navigate("NoteUI", { noteID: item.id });
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               }}
             >
               <View style={[styles.flatlistContainer, { width: cardWidth }]}>
@@ -316,6 +373,8 @@ export default function HomeUI({ navigation }) {
         activeOpacity={0.6}
         style={styles.floatingBtn}
         onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
           navigation.navigate("NoteUI", {
             noteTitle: "",
             noteBody: "",

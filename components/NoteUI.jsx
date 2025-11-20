@@ -1,48 +1,53 @@
 import React, { useEffect, useState } from "react";
 import {
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TextInput,
-  ToastAndroid,
+  Text,
   TouchableOpacity,
   View,
   Image,
   Alert,
+  ImageBackground,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import bgStyle from "../assets/styles/bgStyle";
 import darkColor from "../assets/styles/darkColor";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Share } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
-import { PDFDocument, PDFPage } from "react-native-pdf-lib";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
+import * as ImagePicker from "expo-image-picker";
 
 export default function NoteUI({ navigation, route }) {
-  const noteID = route.params;
+  const { noteID, fromDelete } = route.params;
   const [alignment, setAlignment] = useState("left");
   const [activeBtn, setActiveBtn] = useState(null);
   let [randomVal, setRandomVal] = useState(0);
   const [funRun, setfunRun] = useState(false);
   let [randomNumberBoolen, setRandomNumberBoolean] = useState(false);
-  // const path = RNFS.DocumentDirectoryPath + `/Note_${randomVal}.txt`;
+  const [oldPics, setoldPics] = useState(false);
+  const [trackUseEffect, setTrackUseEffect] = useState(false);
 
+  const [imageURI, setimageURI] = useState([]);
   const [note, setnote] = useState({
     id: randomVal,
     userNoteTitle: "",
     userNoteBody: "",
+    userNoteImgURI: "",
   });
+
+  // console.log("NOTE ID:", noteID);
 
   const userNoteObj = {
     id: randomVal,
     userNoteTitle: note.userNoteTitle,
     userNoteBody: note.userNoteBody,
+    userNoteImgURI: note.userNoteImgURI,
   };
 
   // async function exportTextFile(filename, content) {
@@ -129,6 +134,54 @@ export default function NoteUI({ navigation, route }) {
     }
   };
 
+  // function openImagePicker() {
+  //   const options = {
+  //     mediaType: "photo",
+  //     includeBase64: false,
+  //     maxWidth: 2000,
+  //     maxHeight: 2000,
+  //   };
+  //   launchImageLibrary(options, (response) => {
+  //     if (response.didCancel) {
+  //       console.log("User cancelled");
+  //     } else if (response.errorCode) {
+  //       console.error("There is an error: ", response.errorMessage);
+  //     } else if (response.assets && response.assets.length > 0) {
+  //       const imageURI = response.assets[0].uri;
+  //       console.log("Selected image URI:", imageURI);
+  //     }
+  //   });
+  // }
+
+  const openImagePicker = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert(
+        "Permission required",
+        "You need to allow access to your photos."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setimageURI((prev) => {
+        const updated = [...prev, result.assets[0].uri];
+        setnote({ ...note, userNoteImgURI: JSON.stringify(updated) });
+        // console.log(imageURI);
+        console.log("new image", result.assets[0].uri);
+        return updated;
+      });
+    }
+  };
+
   const handleHaptic = () =>
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -191,11 +244,31 @@ export default function NoteUI({ navigation, route }) {
       },
       {
         text: "Delete",
-        onPress: () => {
+        onPress: async () => {
           try {
-            AsyncStorage.removeItem(key);
-            console.log("Note has been deleted!");
+            const keyToSave =
+              typeof noteID !== "number"
+                ? "delete" + (await generateFourDigitRandom())
+                : "delete" + noteID;
+            console.log("key: ", keyToSave);
+            userNoteObj.id = keyToSave;
+            try {
+              await saveData(
+                "delete",
+                String(keyToSave),
+                JSON.stringify(userNoteObj)
+              );
+            } catch (e) {
+              console.error("Can't move!", e);
+            }
+            try {
+              await AsyncStorage.removeItem(key);
+            } catch (e) {
+              console.error("Can't move note to delete folder: ", e);
+            }
             navigation.goBack();
+
+            console.log("Note has been deleted!");
           } catch (error) {
             console.error("Failed to delete note: ", error);
           }
@@ -204,7 +277,7 @@ export default function NoteUI({ navigation, route }) {
     ]);
   }
 
-  async function saveData(key, value) {
+  async function saveData(place, key, value) {
     if (note.userNoteBody === "" && note.userNoteTitle === "") {
       alert("There is nothing to save!");
     } else if (note.userNoteTitle === "") {
@@ -218,11 +291,28 @@ export default function NoteUI({ navigation, route }) {
         }
         await AsyncStorage.setItem(key, value);
         console.log("Data saved successfully");
-        ToastAndroid.show("Data saved successfully", 500);
+        // ToastAndroid.show("Data saved successfully", 500);
+        if (place === "save") {
+          navigation.goBack();
+        }
       } catch (e) {
         console.error("Failed to save data.", e);
       }
     }
+  }
+
+  async function restoreNote(key) {
+    try {
+      const keyToSave = await generateFourDigitRandom();
+      userNoteObj.id = keyToSave;
+      saveData("save", String(keyToSave), JSON.stringify(userNoteObj));
+    } catch (error) {
+      console.error("Failed to save note to homescreen: ", error);
+    }
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {}
+    console.error("Failed to delete note: ", error);
   }
 
   const getData = async (key) => {
@@ -233,6 +323,7 @@ export default function NoteUI({ navigation, route }) {
         // console.log("Retrieved value:", value);
         setnote(JSON.parse(value));
         setfunRun(true);
+        setTrackUseEffect(true);
         // console.log("Data", note.userNoteBody);
       }
     } catch (e) {
@@ -246,6 +337,26 @@ export default function NoteUI({ navigation, route }) {
     }
   }, [funRun, noteID]);
 
+  useEffect(() => {
+    console.log(oldPics === false);
+    if (trackUseEffect) {
+      if (
+        (typeof noteID === "number" && oldPics === false) ||
+        (oldPics === false && fromDelete === "fromDelete")
+      ) {
+        console.log("Inside fun");
+        if (note.userNoteImgURI) {
+          const oldImages = JSON.parse(note.userNoteImgURI);
+          // console.log("OLD images", oldImages);
+          setimageURI(oldImages);
+          console.log("length", oldImages.length);
+        }
+        setoldPics(true);
+      }
+    }
+  }, [trackUseEffect, noteID, oldPics]);
+  // console.log("HEEEEEEEE", note.userNoteImgURI);
+
   return (
     <SafeAreaView style={bgStyle.container}>
       {/* HEADER */}
@@ -257,6 +368,10 @@ export default function NoteUI({ navigation, route }) {
         {/* //! SHARE */}
         <View style={styles.headerRight}>
           <TouchableOpacity
+            disabled={fromDelete === "fromDelete" ? true : false}
+            style={{
+              opacity: fromDelete === "fromDelete" ? 0.2 : 1,
+            }}
             onPress={async () => {
               await generateFourDigitRandom();
               // await exportTextFile(
@@ -277,16 +392,28 @@ export default function NoteUI({ navigation, route }) {
           {/* //! SAVE */}
           <TouchableOpacity
             onPress={async () => {
-              const keyToSave =
-                typeof noteID !== "number"
-                  ? await generateFourDigitRandom()
-                  : noteID;
-              console.log("key: ", keyToSave);
-              userNoteObj.id = keyToSave;
-              saveData(String(keyToSave), JSON.stringify(userNoteObj));
+              if (fromDelete === "fromDelete") {
+                await restoreNote(noteID);
+              } else {
+                const keyToSave =
+                  typeof noteID !== "number"
+                    ? await generateFourDigitRandom()
+                    : noteID;
+                console.log("key: ", keyToSave);
+                userNoteObj.id = keyToSave;
+                saveData(
+                  "save",
+                  String(keyToSave),
+                  JSON.stringify(userNoteObj)
+                );
+              }
             }}
           >
-            <Ionicons name="save" size={28} color={darkColor.color} />
+            <MaterialIcons
+              name={fromDelete === "fromDelete" ? "restore" : "save"}
+              size={28}
+              color={darkColor.color}
+            />
           </TouchableOpacity>
 
           {/* //! DELETE */}
@@ -326,10 +453,61 @@ export default function NoteUI({ navigation, route }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContainer}
         >
+          {console.log("This is image: ", imageURI)}
+          {/* //! IMAGE */}
+          {fromDelete === "fromDelete" || imageURI.length > 0 ? (
+            <View style={styles.ImageContainer}>
+              <ScrollView horizontal>
+                {imageURI.map((uri, index) => (
+                  <ImageBackground
+                    style={styles.imageStyle}
+                    key={index}
+                    borderRadius={12}
+                    source={{ uri }}
+                    // height={200}
+                    // width={300}
+                    resizeMode="cover"
+                  >
+                    {/* //! REMOVE Image */}
+                    {fromDelete === "fromDelete" ? null : (
+                      <TouchableOpacity
+                        onPress={() => {
+                          const newImageArray = [...imageURI];
+                          newImageArray.splice(index, 1);
+                          // console.log(index, newImageArray, newImageArray.length);
+                          try {
+                            setimageURI(newImageArray);
+                            setnote({
+                              ...note,
+                              userNoteImgURI: JSON.stringify(newImageArray),
+                            });
+                          } catch (e) {
+                            console.error("Unable to remove image: ", e);
+                          }
+                        }}
+                      >
+                        <Ionicons
+                          style={{
+                            position: "absolute",
+                            top: 3,
+                            right: 4,
+                          }}
+                          name="close-circle-sharp"
+                          color={"#FFF8F8FF"}
+                          size={28}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </ImageBackground>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
           {/* //! TITLE */}
           <TextInput
             multiline
             placeholder="Title goes here..."
+            editable={fromDelete === "fromDelete" ? false : true}
             // placeholderTextColor="#44004493"
             placeholderTextColor={"#8C5E3C"}
             style={styles.titleInput}
@@ -337,10 +515,10 @@ export default function NoteUI({ navigation, route }) {
             // onChangeText={setuserTitleTxt}
             onChangeText={(text) => setnote({ ...note, userNoteTitle: text })}
           />
-
           {/* //! BODY TEXT */}
           <View style={styles.bodyContainer}>
             <TextInput
+              editable={fromDelete === "fromDelete" ? false : true}
               multiline
               scrollEnabled
               value={note.userNoteBody}
@@ -356,52 +534,68 @@ export default function NoteUI({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
       {/* BOTTOM BAR */}
-      <View style={styles.bottomBar}>
-        <IconButton
-          icon="attach"
-          active={activeBtn === "attach"}
-          onPress={() => {
-            setActiveBtn(activeBtn === "attach" ? null : "attach");
-            handleHaptic();
-            getKeys();
-          }}
-        />
 
-        <IconButton
-          icon="text"
-          active={activeBtn === "text"}
-          onPress={() => {
-            setActiveBtn(activeBtn === "text" ? null : "text");
-            handleHaptic();
-          }}
-        />
+      {fromDelete === "fromDelete" ? (
+        <View
+          style={[
+            styles.bottomBar,
+            { opacity: fromDelete === "fromDelete" ? 0.3 : 1 },
+          ]}
+        >
+          <Text>Editing is uavailable</Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.bottomBar,
+            { opacity: fromDelete === "fromDelete" ? 0.3 : 1 },
+          ]}
+        >
+          <IconButton
+            icon="attach"
+            active={activeBtn === "attach"}
+            onPress={() => {
+              setActiveBtn(activeBtn === "attach" ? null : "attach");
+              openImagePicker();
+            }}
+          />
 
-        <IconButton
-          icon="align-left"
-          active={alignment === "left"}
-          onPress={() => handleAlign("left")}
-        />
+          {/* //& IMAGE */}
+          <IconButton
+            icon="text"
+            active={activeBtn === "text"}
+            onPress={() => {
+              setActiveBtn(activeBtn === "text" ? null : "text");
+              console.log(note.userNoteImgURI);
+            }}
+          />
 
-        <IconButton
-          icon="align-center"
-          active={alignment === "center"}
-          onPress={() => handleAlign("center")}
-        />
+          <IconButton
+            icon="align-left"
+            active={alignment === "left"}
+            onPress={() => handleAlign("left")}
+          />
 
-        <IconButton
-          icon="align-right"
-          active={alignment === "right"}
-          onPress={() => handleAlign("right")}
-        />
+          <IconButton
+            icon="align-center"
+            active={alignment === "center"}
+            onPress={() => handleAlign("center")}
+          />
 
-        <IconButton
-          icon="align-justify"
-          active={alignment === "justify"}
-          onPress={() => handleAlign("justify")}
-        />
-      </View>
+          <IconButton
+            icon="align-right"
+            active={alignment === "right"}
+            onPress={() => handleAlign("right")}
+          />
+
+          <IconButton
+            icon="align-justify"
+            active={alignment === "justify"}
+            onPress={() => handleAlign("justify")}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -437,6 +631,7 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: "row",
+    alignItems: "center",
     // alignItems: "center",
     justifyContent: "space-evenly",
   },
@@ -451,6 +646,7 @@ const styles = StyleSheet.create({
     fontSize: 25,
     marginTop: 0,
     margin: 12,
+    marginBottom: 16,
     fontWeight: "600",
     // maxHeight: 320,
   },
@@ -461,6 +657,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 5,
     minHeight: 500,
+  },
+  ImageContainer: {
+    marginLeft: 12,
+    elevation: 8,
+    marginBottom: 12,
+    width: "100%",
+  },
+  imageStyle: {
+    borderRadius: 12,
+    width: 200,
+    elevation: 8,
+    marginRight: 12,
+    height: 200,
   },
   bodyInput: {
     flex: 1,

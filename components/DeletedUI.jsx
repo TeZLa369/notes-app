@@ -7,32 +7,119 @@ import {
   FlatList,
   Dimensions,
   ToastAndroid,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import bgStyle from "../assets/styles/bgStyle";
 import { Ionicons } from "@expo/vector-icons";
 import darkColor from "../assets/styles/darkColor";
+import * as Haptics from "expo-haptics";
+import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// let deletedNotes = [];
 
 const DeletedUI = ({ navigation }) => {
+  const [deletedNotes, setDeletedNotes] = useState([]);
   const screenWidth = Dimensions.get("window").width;
   // 60 = total horizontal padding + spacing between cards
   const cardWidth = (screenWidth - 60) / 2;
-  const deletedNotes = [
-    { id: 1, title: "Test", body: "This is for testing only" },
-    { id: 2, title: "Test", body: "This is for testing only" },
-  ];
+  // const deletedNotes = [
+  //   { id: 1, title: "Test", body: "This is for testing only" },
+  //   { id: 2, title: "Test", body: "This is for testing only" },
+  // ];
+  const [deletekeys, setkeys] = useState([]);
+
+  const loadNotes = async () => {
+    try {
+      let numKeys = [];
+      let i = 0;
+      let keys = await AsyncStorage.getAllKeys();
+      numKeys = keys.forEach((index) => {
+        if (index.startsWith("delete")) {
+          numKeys[i] = index;
+          i++;
+        }
+        keys = numKeys;
+        setkeys(keys);
+      });
+      console.log(deletekeys);
+      const result = await AsyncStorage.multiGet(keys);
+
+      const parsedNotes = result.map(([key, value]) => JSON.parse(value));
+      setDeletedNotes(parsedNotes);
+      // console.log(parsedNotes);
+    } catch (e) {
+      console.error("Failed to load notes:", e);
+    }
+  };
+  useEffect(() => {
+    loadNotes();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadNotes();
+    }, [])
+  );
+
+  async function deleteAll() {
+    if (!deletedNotes.length > 0) {
+      Alert.alert("Error!", "Nothing to delete!");
+    } else {
+      try {
+        Alert.alert("Delete All", "Do you really want to delete all notes?", [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            onPress: async () => {
+              await AsyncStorage.multiRemove(deletekeys);
+              setDeletedNotes([]); // clear UI too
+              alert("All notes are deleted!");
+            },
+          },
+        ]);
+      } catch (e) {
+        console.error("Failed to delete notes", e);
+      }
+    }
+  }
+
   return (
     <SafeAreaView style={bgStyle.container}>
       {/* //! HEADING */}
       <View style={DeleteStyles.headingContainer}>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.goBack();
-          }}
-        >
-          <Ionicons name="arrow-back" size={30} color={darkColor.color} />
-        </TouchableOpacity>
-        <Text style={DeleteStyles.headingTxt}>Recently Deleted</Text>
+        <View style={DeleteStyles.headignAndBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              navigation.goBack();
+            }}
+          >
+            <Ionicons name="arrow-back" size={28} color={darkColor.color} />
+          </TouchableOpacity>
+          <Text style={DeleteStyles.headingTxt}>Recently Deleted</Text>
+        </View>
+
+        <View>
+          {/* //! DELETE BTN */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              deleteAll();
+            }}
+          >
+            <Ionicons
+              style={DeletedUI.deleteIcon}
+              color={"#6B4226"}
+              size={28}
+              name="trash-sharp"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* //! SEARCH */}
@@ -79,19 +166,24 @@ const DeletedUI = ({ navigation }) => {
           return (
             <TouchableOpacity
               onPress={() => {
-                ToastAndroid.show(item.title, 500);
+                console.log("ID: ", item.id);
+                navigation.navigate("NoteUI", {
+                  noteID: item.id,
+                  fromDelete: "fromDelete",
+                });
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               }}
             >
               <View
                 style={[DeleteStyles.flatlistContainer, { width: cardWidth }]}
               >
                 <Text style={DeleteStyles.flatlistTxtHeading}>
-                  {item.title}
+                  {item.userNoteTitle}
                 </Text>
                 <Text style={DeleteStyles.flatlistTxtBody}>
-                  {item?.body?.length > 75
-                    ? item.body.slice(0, 75) + "..."
-                    : item.body}
+                  {item?.userNoteBody?.length > 75
+                    ? item.userNoteBody.slice(0, 75) + "..."
+                    : item.userNoteBody}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -115,11 +207,22 @@ const DeleteStyles = StyleSheet.create({
     gap: 10,
     margin: 18,
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headignAndBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   headingTxt: {
     fontWeight: 600,
     fontSize: 24,
     color: "#6B4226",
+  },
+  deleteIcon: {
+    // marginLeft: 8,
+    // tintColor: "#440044FF",
+    tintColor: "#6B4226",
   },
   searchContainer: {
     alignItems: "center",
