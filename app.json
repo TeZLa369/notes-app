@@ -13,13 +13,16 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "infoPlist": {"NSPhotoLibraryUsageDescription": "We need access to your photos to let you select images."},
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "We need access to your photos to let you select images."
+      },
       "supportsTablet": true
     },
     "android": {
       "permissions": [
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"],
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -31,6 +34,11 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "15419f93-0f94-4753-89ff-9be4139b1362"
+      }
+    }
   }
 }

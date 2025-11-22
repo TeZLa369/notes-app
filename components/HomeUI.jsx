@@ -20,7 +20,8 @@ import * as Haptics from "expo-haptics";
 // let userNotes = [];
 // let userKeys = [];
 export default function HomeUI({ navigation }) {
-  const [notes, setNotes] = useState([]); // <-- use state
+  const [notes, setNotes] = useState([]);
+  const [searchList, setsearchList] = useState([]);
   let [taps, settaps] = useState(0);
   const screenWidth = Dimensions.get("window").width;
   const cardWidth = (screenWidth - 60) / 2;
@@ -38,6 +39,8 @@ export default function HomeUI({ navigation }) {
   //     console.error("Failed to fetch data", e);
   //   }
   // };
+
+  const [searchVal, setsearchVal] = useState();
 
   async function saveData(key, value) {
     try {
@@ -166,6 +169,7 @@ export default function HomeUI({ navigation }) {
       // console.log("result:", keys);
       const parsedNotes = result.map(([key, value]) => JSON.parse(value));
       setNotes(parsedNotes);
+      setsearchList(parsedNotes);
     } catch (e) {
       console.error("Failed to load notes:", e);
     }
@@ -264,6 +268,23 @@ export default function HomeUI({ navigation }) {
     settaps((taps = 0));
   }
 
+  function search(val) {
+    setsearchVal(val);
+
+    if (val.trim() === "") {
+      setsearchList(notes);
+      return;
+    }
+
+    const formattedQuery = val.toLowerCase();
+    const filteredData = notes.filter((item) => {
+      const title = item.userNoteTitle ? item.userNoteTitle.toLowerCase() : "";
+      const body = item.userNoteBody ? item.userNoteBody.toLowerCase() : "";
+      return title.includes(formattedQuery) || body.includes(formattedQuery);
+    });
+    setsearchList(filteredData);
+  }
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={bgStyle.container}>
       {/* //! HEADING */}
@@ -309,6 +330,8 @@ export default function HomeUI({ navigation }) {
           <TextInput
             style={styles.txtInput}
             placeholder="Search Notes"
+            value={searchVal}
+            onChangeText={(txt) => search(txt)}
             // placeholderTextColor={"#440044FF"}
             placeholderTextColor={"#9C745588"}
           />
@@ -316,9 +339,9 @@ export default function HomeUI({ navigation }) {
           <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
+              // search();
               // alert("Search icon is pressed");
-              getData("0");
+              // getData("0");
             }}
           >
             <Ionicons
@@ -337,7 +360,7 @@ export default function HomeUI({ navigation }) {
         style={styles.flatlistStyle}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
-        data={notes}
+        data={searchList}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         renderItem={({ item }) => {

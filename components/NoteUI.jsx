@@ -24,6 +24,7 @@ import * as Print from "expo-print";
 import * as ImagePicker from "expo-image-picker";
 
 export default function NoteUI({ navigation, route }) {
+  const [date, setdate] = useState(new Date());
   const { noteID, fromDelete } = route.params;
   const [alignment, setAlignment] = useState("left");
   const [activeBtn, setActiveBtn] = useState(null);
@@ -32,75 +33,35 @@ export default function NoteUI({ navigation, route }) {
   let [randomNumberBoolen, setRandomNumberBoolean] = useState(false);
   const [oldPics, setoldPics] = useState(false);
   const [trackUseEffect, setTrackUseEffect] = useState(false);
-
   const [imageURI, setimageURI] = useState([]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setdate(new Date());
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
   const [note, setnote] = useState({
     id: randomVal,
     userNoteTitle: "",
     userNoteBody: "",
     userNoteImgURI: "",
+    userNoteDate: "",
+    userNoteSaveDate: "",
   });
-
-  // console.log("NOTE ID:", noteID);
 
   const userNoteObj = {
     id: randomVal,
     userNoteTitle: note.userNoteTitle,
     userNoteBody: note.userNoteBody,
     userNoteImgURI: note.userNoteImgURI,
+    userNoteDate: note.userNoteDate,
+    userNoteSaveDate: note.userNoteSaveDate,
   };
-
-  // async function exportTextFile(filename, content) {
-  //   try {
-  //     await Share.share({
-  //       title: "Share File",
-  //       message:
-  //         "Title: " +
-  //         userNoteObj.userNoteTitle +
-  //         "\nNote Body: " +
-  //         userNoteObj.userNoteBody,
-  //     });
-  //   } catch (error) {
-  //     console.error("Failed to send note! ", error);
-  //   }
-  // }
-
-  // const textToPDF = async () => {
-  //   try {
-  //     // Get document directory path
-  //     const docDir = FileSystem.documentDirectory;
-
-  //     // PDF file path
-  //     const pdfPath = `${docDir}${userNoteObj.userNoteTitle}.pdf`;
-
-  //     // Create PDF page
-  //     const page = PDFPage.create()
-  //       .setMediaBox(612, 792) // standard A4 size
-  //       .drawText(userNoteObj.userNoteTitle, {
-  //         x: 50,
-  //         y: 740,
-  //         color: darkColor.color,
-  //         fontSize: 24,
-  //       })
-  //       .drawText(userNoteObj.userNoteBody, {
-  //         x: 50,
-  //         y: 700,
-  //         color: "#7C563AFF",
-  //         fontSize: 16,
-  //       });
-
-  //     // Create and write PDF
-  //     const pdfDoc = PDFDocument.create(pdfPath).addPages(page);
-  //     await pdfDoc.write();
-
-  //     Alert.alert("Success", `PDF saved at: ${pdfPath}`);
-  //     console.log("✅ PDF saved:", pdfPath);
-
-  //     return pdfPath;
-  //   } catch (e) {
-  //     console.log("❌ Failed to create PDF:", e);
-  //   }
-  // };
 
   const textToPDF = async () => {
     try {
@@ -252,6 +213,7 @@ export default function NoteUI({ navigation, route }) {
                 : "delete" + noteID;
             console.log("key: ", keyToSave);
             userNoteObj.id = keyToSave;
+
             try {
               await saveData(
                 "delete",
@@ -278,6 +240,9 @@ export default function NoteUI({ navigation, route }) {
   }
 
   async function saveData(place, key, value) {
+    // userNoteObj.userNoteDate = date.toLocaleDateString();
+
+    console.log(userNoteObj.userNoteDate);
     if (note.userNoteBody === "" && note.userNoteTitle === "") {
       alert("There is nothing to save!");
     } else if (note.userNoteTitle === "") {
@@ -401,6 +366,11 @@ export default function NoteUI({ navigation, route }) {
                     : noteID;
                 console.log("key: ", keyToSave);
                 userNoteObj.id = keyToSave;
+                userNoteObj.userNoteDate = date.toLocaleString();
+                // userNoteObj.userNoteSaveDate = date.toISOString();
+                // console.log("date: ",userNoteObj.userNoteSaveDate)
+                userNoteObj.userNoteSaveDate = "2025-10-30T10:00:00";
+
                 saveData(
                   "save",
                   String(keyToSave),
@@ -453,7 +423,6 @@ export default function NoteUI({ navigation, route }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContainer}
         >
-          {console.log("This is image: ", imageURI)}
           {/* //! IMAGE */}
           {fromDelete === "fromDelete" || imageURI.length > 0 ? (
             <View style={styles.ImageContainer}>
@@ -532,6 +501,13 @@ export default function NoteUI({ navigation, route }) {
               ]}
             />
           </View>
+          {/* //! DATE */}
+
+          {/* <View style={styles.dateContainer}> */}
+          <Text style={styles.dateStyle}>
+            {noteID ? note.userNoteDate : date.toLocaleString()}
+          </Text>
+          {/* </View> */}
         </ScrollView>
       </KeyboardAvoidingView>
       {/* BOTTOM BAR */}
@@ -567,7 +543,7 @@ export default function NoteUI({ navigation, route }) {
             active={activeBtn === "text"}
             onPress={() => {
               setActiveBtn(activeBtn === "text" ? null : "text");
-              console.log(note.userNoteImgURI);
+              console.log(note.userNoteDate);
             }}
           />
 
@@ -677,6 +653,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 12,
     letterSpacing: 1,
+    fontStyle: "italic",
+  },
+  dateContainer: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateStyle: {
+    marginTop: "12%",
+    textAlign: "center",
+    color: "#8C5E3C",
     fontStyle: "italic",
   },
   bottomBar: {
