@@ -14,9 +14,11 @@
     },
     "ios": {
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "We need access to your photos to let you select images."
+        "NSPhotoLibraryUsageDescription": "We need access to your photos to let you select images.",
+        "ITSAppUsesNonExemptEncryption": false
       },
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tezla.notesapp"
     },
     "android": {
       "permissions": [
@@ -27,7 +29,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.tezla.notesapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
