@@ -1,10 +1,9 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import DeletedUI from "./components/DeletedUI";
-import NoteUI from "./components/NoteUI";
 import HomeUI from "./components/HomeUI";
-import bgStyle from "./assets/styles/bgStyle";
+import NoteUI from "./components/noteUI";
+import DeletedUI from "./components/deletedUI";
 
 const Stack = createNativeStackNavigator();
 export default function App() {
